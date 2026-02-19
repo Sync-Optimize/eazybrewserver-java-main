@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>WebSocket Tester</title>
+    <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.0.0/bundles/stomp.umd.min.js"></script>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+        }
+
+        #log {
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            height: 300px;
+            overflow-y: scroll;
+            background: #f9f9f9;
+        }
+
+        .message {
+            padding: 5px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .error {
+            color: red;
+        }
+
+        .success {
+            color: green;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>WebSocket Connection Test</h2>
+    <div>
+        <strong>Status:</strong> <span id="status">Connecting...</span>
+    </div>
+    <div>
+        <strong>Device ID:</strong> <span id="deviceId">A62T11BBT4G00336</span>
+    </div>
+    <div id="log"></div>
+
+    <script>
+        const stompClient = new StompJs.Client({
+            brokerURL: 'wss://prod.eazybrewserver.com/ws/websocket',
+            onConnect: (frame) => {
+                setConnected(true);
+                console.log('Connected: ' + frame);
+                log("Connection established successfully.", "success");
+
+                // Subscribe to the device topic
+                const deviceId = document.getElementById('deviceId').innerText;
+                const topic = '/topic/transactions/device/' + deviceId;
+
+                log("Subscribing to: " + topic);
+
+                stompClient.subscribe(topic, (message) => {
+                    log("RECEIVED MESSAGE: " + message.body, "success");
+                });
+            },
+            onWebSocketError: (error) => {
+                console.error('Error with websocket', error);
+                log("WebSocket Error. Check console for details.", "error");
+                setConnected(false);
+            },
+            onStompError: (frame) => {
+                console.error('Broker reported error: ' + frame.headers['message']);
+                console.error('Additional details: ' + frame.body);
+                log("Stomp Error: " + frame.headers['message'], "error");
+            }
+        });
+
+        function setConnected(connected) {
+            const status = document.getElementById("status");
+            if (connected) {
+                status.innerText = "Connected";
+                status.className = "success";
+            } else {
+                status.innerText = "Disconnected";
+                status.className = "error";
+            }
+        }
+
+        function log(message, type) {
+            const logDiv = document.getElementById('log');
+            const p = document.createElement('div');
+            p.className = 'message ' + (type || '');
+            p.innerText = new Date().toLocaleTimeString() + " - " + message;
+            logDiv.appendChild(p);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        stompClient.activate();
+    </script>
+</body>
+
+</html>
