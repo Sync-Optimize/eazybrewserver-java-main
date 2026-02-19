@@ -1,0 +1,104 @@
+
+spring:
+  application:
+    name: eazy
+  datasource:
+#    dev
+    # url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://db-postgresql-nyc3-41399-do-user-21083887-0.l.db.ondigitalocean.com:25060/eazyvend}
+    url: ${SPRING_DATASOURCE_URL}
+    # username: ${SPRING_DATASOURCE_USERNAME:doadmin}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+
+    driver-class-name: ${SPRING_DATASOURCE_DRIVER_CLASS_NAME}
+    type: com.zaxxer.hikari.HikariDataSource
+    hikari:
+      pool-name: Hikari
+      auto-commit: true
+      minimum-idle: 5
+      maximum-pool-size: 20
+      idle-timeout: 300000
+      max-lifetime: 1800000
+      connection-timeout: 30000
+      connection-test-query: SELECT 1
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        show_sql: true
+    database: postgresql
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    open-in-view: false
+
+server:
+  port: ${SERVER_PORT:9090}  # Default to 9090 if not set
+
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql: TRACE
+    com.zaxxer.hikari: DEBUG
+    org.hibernate.orm.connections.pooling: DEBUG
+    # Add Spring Security debug logs to diagnose issues
+    org.springframework.security: DEBUG
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+    tagsSorter: alpha
+    filter: true
+  packages-to-scan: com.eazybrew.vend.controller
+  show-actuator: false
+
+# ZeptoMail Email Service Configuration
+zeptomail:
+  api:
+    url: ${ZEPTOMAIL_API_URL:https://api.zeptomail.com/v1.1/email}
+    key: ${ZEPTOMAIL_API_KEY}
+  from:
+    email: ${ZEPTOMAIL_FROM_EMAIL}
+    name: ${ZEPTOMAIL_FROM_NAME}
+
+# Swagger Server Configuration
+swagger:
+  server:
+    production:
+      url: ${SWAGGER_SERVER_PROD_URL:https://prod.eazybrewserver.com}
+    development:
+      url: ${SWAGGER_SERVER_DEV_URL:https://dev.eazybrewserver.com}
+    local:
+      url: ${SWAGGER_SERVER_LOCAL_URL:http://localhost:9090}
+
+encryption:
+  secret:
+    #prod
+#    key: B2fX9Wk7sVGd3M1TpqYRjzALUbHe0CiQ
+
+    #dev
+    key: ${ENCRYPTION_SECRET_KEY}
+  # 16-character initialization vector
+  init:
+    #dev
+    vector: ${ENCRYPTION_INIT_VECTOR}
+#prod
+#    vector: n7Ew4ZgLxMdV9RuK
+
+#dev
+paystack:
+  api:
+    key: ${PAYSTACK_API_KEY}
+  secret:
+    key: ${PAYSTACK_SECRET_KEY}
+
+
+
+  baseurl: ${PAYSTACK_BASE_URL:https://api.paystack.co}
+  prefered:
+    bank: ${PAYSTACK_PREFERED_BANK:test-bank}
