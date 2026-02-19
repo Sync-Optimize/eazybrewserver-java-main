@@ -1,5 +1,7 @@
 version: '3.8'
+
 services:
+  # 1. The Database Service
   db:
     image: postgres:15-alpine
     container_name: eazyvend-db
@@ -7,11 +9,59 @@ services:
       - "5432:5432"
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: 12345678  # Matches your .env
-      POSTGRES_DB: eazyvend        # Matches your .env connection URL
+      POSTGRES_PASSWORD: ${SPRING_DATASOURCE_PASSWORD} # Reads from .env
+      POSTGRES_DB: eazyvend
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
+    networks:
+      - eazy-network
+
+  # 2. The Spring Boot Backend
+  app:
+    build: .  # Builds from the Dockerfile in current directory
+    container_name: eazyvend-backend
+    ports:
+      - "${SERVER_PORT}:9090" # Maps server port to container port
+    depends_on:
+      - db
+    environment:
+      # OVERRIDE the connection URL to use 'db' instead of 'localhost'
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/eazyvend
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      # Pass through other keys
+      ZEPTOMAIL_API_KEY: ${ZEPTOMAIL_API_KEY}
+      ENCRYPTION_SECRET_KEY: ${ENCRYPTION_SECRET_KEY}
+      ENCRYPTION_INIT_VECTOR: ${ENCRYPTION_INIT_VECTOR}
+      PAYSTACK_API_KEY: ${PAYSTACK_API_KEY}
+      PAYSTACK_SECRET_KEY: ${PAYSTACK_SECRET_KEY}
+    networks:
+      - eazy-network
+    restart: always
 
 volumes:
   postgres_data:
+
+networks:
+  eazy-network:
+    driver: bridge
+
+
+# version: '3.8'
+# services:
+#   db:
+#     image: postgres:15-alpine
+#     container_name: eazyvend-db
+#     ports:
+#       - "5432:5432"
+#     environment:
+#       POSTGRES_USER: postgres
+#       POSTGRES_PASSWORD: 12345678  # Matches your .env
+#       POSTGRES_DB: eazyvend        # Matches your .env connection URL
+#     volumes:
+#       - postgres_data:/var/lib/postgresql/data
+#     restart: unless-stopped
+
+# volumes:
+#   postgres_data:
