@@ -16,4 +16,13 @@ public class RequestLoggingConfig {
         registrationBean.setOrder(1); // Set order
         return registrationBean;
     }
+
+    @jakarta.annotation.PostConstruct
+    public void init() {
+        System.out
+                .println("==========================================================================================");
+        System.out.println("REQUEST LOGGING CONFIG LOADED SUCCESSFULLY - YOU SHOULD SEE LOGS FOR API CALLS NOW");
+        System.out
+                .println("==========================================================================================");
+    }
 }
