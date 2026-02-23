@@ -47,13 +47,14 @@ public class PaymentRequestServiceImpl implements PaymentRequestService {
     @Override
     @Transactional
     public TransactionResponse processPaymentRequest(PaymentRequestDto request) {
-        log.info("Processing payment request: {}", request);BigDecimal divisor = BigDecimal.valueOf(100);
+        log.info("Processing payment request: {}", request);
+        BigDecimal divisor = BigDecimal.valueOf(100);
         BigDecimal amountInCurrency = request.getAmount()
                 .divide(divisor, 2, RoundingMode.HALF_EVEN);
         request.setAmount(amountInCurrency);
 
         Staff staff;
-        if(transactionRepository.existsByReferenceNumber(request.getTransactionReference())){
+        if (transactionRepository.existsByReferenceNumber(request.getTransactionReference())) {
             throw new CustomException("Transaction reference number already exists", HttpStatus.BAD_REQUEST);
         }
 
@@ -64,17 +65,17 @@ public class PaymentRequestServiceImpl implements PaymentRequestService {
         }
 
         // Validate API key and get company
-        Company company = companyRepository.findByApiKeyAndRecordStatus(request.getApiKey(), RecordStatusConstant.ACTIVE)
+        Company company = companyRepository
+                .findByApiKeyAndRecordStatus(request.getApiKey(), RecordStatusConstant.ACTIVE)
                 .orElseThrow(() -> new CustomException("Invalid API key", HttpStatus.UNAUTHORIZED));
 
         if (!company.isEnabled()) {
             throw new CustomException("Company account is disabled", HttpStatus.FORBIDDEN);
         }
 
-
         // Get device
         Device device = deviceRepository.findByVendingMachineIdAndRecordStatus(request.getVendingMachineId(),
-                        RecordStatusConstant.ACTIVE)
+                RecordStatusConstant.ACTIVE)
                 .orElseThrow(() -> new CustomException("Device not found", HttpStatus.NOT_FOUND));
 
         if (!device.isEnabled()) {
@@ -94,28 +95,27 @@ public class PaymentRequestServiceImpl implements PaymentRequestService {
         InitializeTransactionRequest initializeTransactionRequest;
         InitializeTransactionResponse initializeTransactionResponse;
 
-        //initialize Transaction
+        // initialize Transaction
         Transaction transaction = null;
-        if(paymentType.name().equalsIgnoreCase(PaymentType.NFC.name())){
+        if (paymentType.name().equalsIgnoreCase(PaymentType.NFC.name())) {
             paymentMethod = PaymentMethod.NFC;
-        }else if(paymentType.name().equalsIgnoreCase(PaymentType.BANK_CARD.name())){
+        } else if (paymentType.name().equalsIgnoreCase(PaymentType.BANK_CARD.name())) {
             paymentMethod = PaymentMethod.CREDIT_CARD;
         } else if (paymentType.name().equalsIgnoreCase(PaymentType.TRANSFER.name())) {
             paymentMethod = PaymentMethod.PAYSTACK;
-        }else {
+        } else {
             paymentMethod = PaymentMethod.PAYSTACK;
         }
 
-        if(paymentMethod.name().equalsIgnoreCase(PaymentMethod.PAYSTACK.name())) {
+        if (paymentMethod.name().equalsIgnoreCase(PaymentMethod.PAYSTACK.name())) {
 
             initializeTransactionRequest = InitializeTransactionRequest.builder()
-                    .amount(request.getAmount())
+                    .amount(amountInCurrency.multiply(BigDecimal.valueOf(100)).longValue())
                     .email("contact@bemoretec.com")
                     .build();
 
             initializeTransactionResponse = payStack
                     .initializeTransaction(initializeTransactionRequest);
-
 
             // Create transaction
             transaction = Transaction.builder()
@@ -130,7 +130,6 @@ public class PaymentRequestServiceImpl implements PaymentRequestService {
                     .notes(request.getProductDescription())
                     .paystackReference(initializeTransactionResponse.getData().getReference())
                     .build();
-
 
             // Save transaction
             transaction = transactionRepository.saveAndFlush(transaction);
@@ -180,7 +179,6 @@ public class PaymentRequestServiceImpl implements PaymentRequestService {
                 .notes(request.getProductDescription())
                 .build();
 
-
         // Save transaction
         transaction = transactionRepository.saveAndFlush(transaction);
         // Update device last active timestamp
@@ -227,7 +225,8 @@ public class PaymentRequestServiceImpl implements PaymentRequestService {
 
                 if (paymentRequest != null) {
                     paymentRequest.setStatus("SUCCESS");
-                    paymentRequest.setReturnUrl("https://dev.eazybrewserver.com/payment/receipt?reference=" + transactionReference);
+                    paymentRequest.setReturnUrl(
+                            "https://dev.eazybrewserver.com/payment/receipt?reference=" + transactionReference);
                     paymentRequestRepository.save(paymentRequest);
                     log.info("Payment request completed successfully: {}", transactionReference);
                 }
@@ -246,7 +245,6 @@ public class PaymentRequestServiceImpl implements PaymentRequestService {
                 .orElseThrow(() -> new CustomException("Transaction with ref not found", HttpStatus.NOT_FOUND));
 
         TransactionResponse transactionResponse = TransactionResponse.fromEntity(transaction);
-
 
         return transactionResponse;
     }
