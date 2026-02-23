@@ -64,7 +64,8 @@ public class TransactionServiceImpl implements TransactionService {
         }
 
         // Validate API key and get company
-        Company company = companyRepository.findByApiKeyAndRecordStatus(request.getApiKey(), RecordStatusConstant.ACTIVE)
+        Company company = companyRepository
+                .findByApiKeyAndRecordStatus(request.getApiKey(), RecordStatusConstant.ACTIVE)
                 .orElseThrow(() -> new CustomException("Invalid API key", HttpStatus.UNAUTHORIZED));
 
         if (!company.isEnabled()) {
@@ -80,10 +81,9 @@ public class TransactionServiceImpl implements TransactionService {
             }
         }
 
-
         // Get device
         Device device = deviceRepository.findByDeviceIdAndRecordStatus(request.getDeviceId(),
-                        RecordStatusConstant.ACTIVE)
+                RecordStatusConstant.ACTIVE)
                 .orElseThrow(() -> new CustomException("Device not found", HttpStatus.NOT_FOUND));
 
         if (!device.isEnabled()) {
@@ -99,7 +99,8 @@ public class TransactionServiceImpl implements TransactionService {
         if (amountInCurrency.compareTo(BigDecimal.ZERO) <= 0) {
             throw new CustomException("Transaction amount must be positive", HttpStatus.BAD_REQUEST);
         }
-        // Check if staff or company has a valid voucher and can spend the requested amount
+        // Check if staff or company has a valid voucher and can spend the requested
+        // amount
         boolean useVoucher = false;
         boolean useStaffVoucher = false;
 
@@ -109,7 +110,6 @@ public class TransactionServiceImpl implements TransactionService {
             if (!staff.isEnabled()) {
                 throw new CustomException("Staff account is disabled", HttpStatus.FORBIDDEN);
             }
-
 
             try {
                 if (staff != null) {
@@ -121,21 +121,23 @@ public class TransactionServiceImpl implements TransactionService {
 
                 }
 
-//                // If staff doesn't have a voucher or can't spend, check company voucher
-//                if (!useVoucher) {
-//                    useVoucher = voucherService.canCompanySpend(company.getId(), request.getAmount());
-//                    log.info("Company {} has a valid voucher and can spend {}: {}",
-//                            company.getId(), request.getAmount(), useVoucher);
-//                }
+                // // If staff doesn't have a voucher or can't spend, check company voucher
+                // if (!useVoucher) {
+                // useVoucher = voucherService.canCompanySpend(company.getId(),
+                // request.getAmount());
+                // log.info("Company {} has a valid voucher and can spend {}: {}",
+                // company.getId(), request.getAmount(), useVoucher);
+                // }
             } catch (Exception e) {
-                // If there's any error checking the voucher, log it and continue without using voucher
+                // If there's any error checking the voucher, log it and continue without using
+                // voucher
                 log.error("Error checking voucher: {}", e.getMessage());
                 useVoucher = false;
                 useStaffVoucher = false;
             }
         }
 
-        if(!useVoucher && PaymentMethod.NFC.name().equalsIgnoreCase(request.getPaymentMethod().toString())){
+        if (!useVoucher && PaymentMethod.NFC.name().equalsIgnoreCase(request.getPaymentMethod().toString())) {
             throw new CustomException("Voucher has already been used or exhausted, try another payment method",
                     HttpStatus.BAD_REQUEST);
         }
@@ -159,7 +161,7 @@ public class TransactionServiceImpl implements TransactionService {
         } else {
             // Regular payment flow
             initializeTransactionRequest = InitializeTransactionRequest.builder()
-                    .amount(request.getAmount())
+                    .amount(request.getAmount().multiply(BigDecimal.valueOf(100)).longValue())
                     .email("contact@bemoretec.com")
                     .build();
             if (staff != null) {
@@ -172,20 +174,22 @@ public class TransactionServiceImpl implements TransactionService {
 
         // Create transaction
         Transaction transaction;
-        Optional<Transaction> transactionOptional = transactionRepository.findByReferenceNumber(request.getReferenceNumber());
-        if (transactionOptional.isEmpty() && PaymentMethod.NFC.name().equalsIgnoreCase(request.getPaymentMethod().toString())) {
+        Optional<Transaction> transactionOptional = transactionRepository
+                .findByReferenceNumber(request.getReferenceNumber());
+        if (transactionOptional.isEmpty()
+                && PaymentMethod.NFC.name().equalsIgnoreCase(request.getPaymentMethod().toString())) {
             throw new CustomException("Pass the reference use to start the transaction on the vending machine",
                     HttpStatus.BAD_REQUEST);
         }
-        if(transactionOptional.isPresent()) {
+        if (transactionOptional.isPresent()) {
             transaction = transactionOptional.get();
-            if (staff != null  && PaymentMethod.NFC.name().equalsIgnoreCase(request.getPaymentMethod().toString())) {
+            if (staff != null && PaymentMethod.NFC.name().equalsIgnoreCase(request.getPaymentMethod().toString())) {
                 transaction.setStaff(staff);
             }
             // Save transaction
             transaction = transactionRepository.saveAndFlush(transaction);
             log.info("using nfc and staff got the transaction: {}", staff.getCardSerial());
-        }else{
+        } else {
             transaction = Transaction.builder()
                     .transactionId(generatorUtils.generateTransactionId())
                     .referenceNumber(request.getReferenceNumber())
@@ -197,12 +201,9 @@ public class TransactionServiceImpl implements TransactionService {
                     .company(company)
 
                     .paystackReference(initializeTransactionResponse.getData().getReference())
-//
+                    //
                     .build();
         }
-
-
-
 
         // Update device last active timestamp
         device.setLastActive(transaction.getDateCreated());
@@ -221,12 +222,12 @@ public class TransactionServiceImpl implements TransactionService {
                 // Save transaction
                 transaction = transactionRepository.saveAndFlush(transaction);
                 log.info("using nfc and staff completed transaction: {}", staff.getCardSerial());
-//                else {
-//                    // Use company voucher
-//                    voucherService.useVoucher(company.getId(), request.getAmount());
-//                    log.info("Successfully used company voucher for company {} to pay {}",
-//                            company.getId(), request.getAmount());
-//                }
+                // else {
+                // // Use company voucher
+                // voucherService.useVoucher(company.getId(), request.getAmount());
+                // log.info("Successfully used company voucher for company {} to pay {}",
+                // company.getId(), request.getAmount());
+                // }
             } catch (Exception e) {
                 // If there's any error using the voucher, log it but don't fail the transaction
                 // since we've already created the transaction record
@@ -241,19 +242,19 @@ public class TransactionServiceImpl implements TransactionService {
         transactionResponse.setAccessCode(initializeTransactionResponse.getData().getAccess_code());
         transactionResponse.setPaystackReference(initializeTransactionResponse.getData().getReference());
 
-//        // Send WebSocket notification about the transaction
-//        webSocketService.sendTransactionNotification(transaction);
-//        log.info("WebSocket notification sent for transaction: {}", transaction.getTransactionId());
+        // // Send WebSocket notification about the transaction
+        // webSocketService.sendTransactionNotification(transaction);
+        // log.info("WebSocket notification sent for transaction: {}",
+        // transaction.getTransactionId());
 
         return transactionResponse;
     }
 
     @Override
     public Page<Transaction> getTransactionsByCompany(Long companyId, Pageable pageable) {
-        // Validate  and get company
+        // Validate and get company
         Company company = companyRepository.findByIdAndRecordStatus(companyId, RecordStatusConstant.ACTIVE)
                 .orElseThrow(() -> new CustomException("Unable to find company", HttpStatus.NOT_FOUND));
-
 
         return transactionRepository.findByCompany(company, pageable);
     }
@@ -261,11 +262,11 @@ public class TransactionServiceImpl implements TransactionService {
     @Override
     public Page<Transaction> getTransactionsByCompanyAndStaffId(Long companyId, Long staffId, Pageable pageable) {
 
-        // Validate  and get company
+        // Validate and get company
         Company company = companyRepository.findByIdAndRecordStatus(companyId, RecordStatusConstant.ACTIVE)
                 .orElseThrow(() -> new CustomException("Unable to find company", HttpStatus.NOT_FOUND));
 
-        // Validate  and get Staff
+        // Validate and get Staff
         Staff staff = staffService.getStaffById(companyId, staffId);
         return transactionRepository.findByCompanyAndStaff(company, staff, pageable);
     }
@@ -284,7 +285,7 @@ public class TransactionServiceImpl implements TransactionService {
                 .totalPrice(request.getUnitPrice().multiply(BigDecimal.valueOf(request.getQuantity())))
                 .description(request.getDescription())
                 .category(request.getCategory())
-//                .transaction(transaction)
+                // .transaction(transaction)
                 .build();
     }
 }

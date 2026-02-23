@@ -19,6 +19,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.net.URI;
 import java.util.Collections;
 import java.util.List;
+import java.math.BigDecimal;
 
 @Service
 @Slf4j
@@ -244,7 +245,7 @@ public class PayStackImpl implements PayStack {
             if (responseBody != null && responseBody.isStatus()) {
                 PaystackTransaction transaction = new PaystackTransaction();
                 transaction.setEmail(request.getEmail());
-                transaction.setAmount(request.getAmount());
+                transaction.setAmount(BigDecimal.valueOf(request.getAmount() / 100));
                 transaction.setAuthorizationUrl(responseBody.getData().getAuthorization_url());
                 transaction.setStatus("pending");
                 transaction.setAccessCode(responseBody.getData().getAccess_code());

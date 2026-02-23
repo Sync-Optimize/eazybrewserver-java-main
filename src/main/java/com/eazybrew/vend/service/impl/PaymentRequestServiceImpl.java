@@ -110,7 +110,7 @@ public class PaymentRequestServiceImpl implements PaymentRequestService {
         if (paymentMethod.name().equalsIgnoreCase(PaymentMethod.PAYSTACK.name())) {
 
             initializeTransactionRequest = InitializeTransactionRequest.builder()
-                    .amount(amountInCurrency.multiply(BigDecimal.valueOf(100)))
+                    .amount(amountInCurrency.multiply(BigDecimal.valueOf(100)).longValue())
                     .email("contact@bemoretec.com")
                     .build();
 
