@@ -34,4 +34,6 @@ public class PaymentRequestDto {
     private int paymentType;
 
     private String apiKey;
+
+    private String callbackUrl;
 }

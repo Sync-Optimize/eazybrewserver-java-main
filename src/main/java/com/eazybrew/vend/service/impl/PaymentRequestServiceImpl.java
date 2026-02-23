@@ -112,6 +112,7 @@ public class PaymentRequestServiceImpl implements PaymentRequestService {
             initializeTransactionRequest = InitializeTransactionRequest.builder()
                     .amount(amountInCurrency.multiply(BigDecimal.valueOf(100)).longValue())
                     .email("contact@bemoretec.com")
+                    .callback_url(request.getCallbackUrl())
                     .build();
 
             initializeTransactionResponse = payStack

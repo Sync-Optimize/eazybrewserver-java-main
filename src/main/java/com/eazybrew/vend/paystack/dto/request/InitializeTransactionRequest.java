@@ -12,4 +12,5 @@ import lombok.NoArgsConstructor;
 public class InitializeTransactionRequest {
     private String email;
     private Long amount;
+    private String callback_url;
 }

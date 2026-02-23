@@ -25,7 +25,6 @@ public class TransactionRequest {
     @NotBlank(message = "Reference number is required")
     private String referenceNumber;
 
-
     @NotNull(message = "Payment method is required")
     private PaymentMethod paymentMethod;
 
@@ -43,5 +42,7 @@ public class TransactionRequest {
     private String apiKey;
 
     private String notes;
+
+    private String callbackUrl;
 
 }

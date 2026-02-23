@@ -163,6 +163,7 @@ public class TransactionServiceImpl implements TransactionService {
             initializeTransactionRequest = InitializeTransactionRequest.builder()
                     .amount(request.getAmount().multiply(BigDecimal.valueOf(100)).longValue())
                     .email("contact@bemoretec.com")
+                    .callback_url(request.getCallbackUrl())
                     .build();
             if (staff != null) {
                 initializeTransactionRequest.setEmail(staff.getEmail());
