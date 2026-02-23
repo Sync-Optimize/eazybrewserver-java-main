@@ -1,6 +1,5 @@
 package com.eazybrew.vend.paystack.impl;
 
-
 import com.eazybrew.vend.exceptions.CustomException;
 import com.eazybrew.vend.model.Staff;
 import com.eazybrew.vend.paystack.PayStack;
@@ -34,7 +33,6 @@ public class PayStackImpl implements PayStack {
 
     @Value("${paystack.prefered.bank}")
     private String preferredBank;
-
 
     @Autowired
     private RestTemplate restTemplate;
@@ -92,7 +90,8 @@ public class PayStackImpl implements PayStack {
             }
             return nubanResponse;
         } catch (Exception e) {
-            log.info("Error creating virtual account on paystack for customerId>> " + request.getPreferredBank() + " " + e.getMessage());
+            log.info("Error creating virtual account on paystack for customerId>> " + request.getPreferredBank() + " "
+                    + e.getMessage());
             throw new CustomException(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
@@ -173,14 +172,12 @@ public class PayStackImpl implements PayStack {
             // Create the request entity (headers only since it's a GET request)
             HttpEntity<Void> httpRequest = new HttpEntity<>(headers);
 
-
             // Use RestTemplate's exchange method for GET request
             ResponseEntity<BankResponse> result = restTemplate.exchange(
                     uri,
                     HttpMethod.GET,
                     httpRequest,
-                    BankResponse.class
-            );
+                    BankResponse.class);
             System.out.println(result);
             if (result.getStatusCode().is2xxSuccessful()) {
                 bankResponse = result.getBody();
@@ -213,14 +210,12 @@ public class PayStackImpl implements PayStack {
             // Create the request entity (headers only since it's a GET request)
             HttpEntity<Void> httpRequest = new HttpEntity<>(headers);
 
-
             // Use RestTemplate's exchange method for GET request
             ResponseEntity<AccountNumberResponse> result = restTemplate.exchange(
                     uri,
                     HttpMethod.GET,
                     httpRequest,
-                    AccountNumberResponse.class
-            );
+                    AccountNumberResponse.class);
             System.out.println(result);
             if (result.getStatusCode().is2xxSuccessful()) {
                 accountNumberResponse = result.getBody();
@@ -242,7 +237,8 @@ public class PayStackImpl implements PayStack {
             headers.set("Authorization", "Bearer " + secretKey);
             headers.setContentType(MediaType.APPLICATION_JSON);
             HttpEntity<InitializeTransactionRequest> entity = new HttpEntity<>(request, headers);
-            ResponseEntity<InitializeTransactionResponse> response = restTemplate.postForEntity(url, entity, InitializeTransactionResponse.class);
+            ResponseEntity<InitializeTransactionResponse> response = restTemplate.postForEntity(url, entity,
+                    InitializeTransactionResponse.class);
 
             InitializeTransactionResponse responseBody = response.getBody();
             if (responseBody != null && responseBody.isStatus()) {
