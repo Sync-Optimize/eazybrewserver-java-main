@@ -9,14 +9,13 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-
 @Data
 @Entity
 @Table(name = "devices")
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Device extends BaseEntity<Long>{
+public class Device extends BaseEntity<Long> {
     @Column(name = "device_id", unique = true, nullable = false)
     private String deviceId; // Device serial number
 
@@ -45,5 +44,8 @@ public class Device extends BaseEntity<Long>{
 
     @Column(name = "location")
     private String location;
+
+    @Column(name = "nomba_terminal_id")
+    private String nombaTerminalId;
 
 }

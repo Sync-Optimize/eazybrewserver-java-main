@@ -19,7 +19,9 @@ import com.eazybrew.vend.service.PaymentRequestService;
 import com.eazybrew.vend.service.StaffService;
 import com.eazybrew.vend.service.VoucherService;
 import com.eazybrew.vend.util.GeneratorUtils;
+import com.eazybrew.vend.nomba.service.NombaService;
 import com.eazybrew.vend.websocket.WebSocketService;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -43,6 +45,7 @@ public class PaymentRequestServiceImpl implements PaymentRequestService {
     private final CompanyRepository companyRepository;
     private final TransactionRepository transactionRepository;
     private final PayStack payStack;
+    private final NombaService nombaService;
 
     @Override
     @Transactional
@@ -97,11 +100,62 @@ public class PaymentRequestServiceImpl implements PaymentRequestService {
 
         // initialize Transaction
         Transaction transaction = null;
-        if (paymentType.name().equalsIgnoreCase(PaymentType.NFC.name())) {
+        if (paymentType == PaymentType.NFC) {
             paymentMethod = PaymentMethod.NFC;
-        } else if (paymentType.name().equalsIgnoreCase(PaymentType.BANK_CARD.name())) {
+        } else if (paymentType == PaymentType.BANK_CARD) {
+            // ---- Nomba Terminal Push Payment ----
             paymentMethod = PaymentMethod.CREDIT_CARD;
-        } else if (paymentType.name().equalsIgnoreCase(PaymentType.TRANSFER.name())) {
+
+            String terminalId = device.getNombaTerminalId();
+            if (terminalId == null || terminalId.isBlank()) {
+                throw new CustomException("No Nomba terminal configured for this device", HttpStatus.BAD_REQUEST);
+            }
+
+            // Create the transaction as PENDING
+            Transaction nombaTransaction = Transaction.builder()
+                    .transactionId(generatorUtils.generateTransactionId())
+                    .referenceNumber(request.getTransactionReference())
+                    .transactionType(TransactionType.SALE)
+                    .paymentMethod(PaymentMethod.CREDIT_CARD)
+                    .amount(amountInCurrency)
+                    .status(TransactionStatus.PENDING)
+                    .device(device)
+                    .company(company)
+                    .notes(request.getProductDescription())
+                    .build();
+            nombaTransaction = transactionRepository.saveAndFlush(nombaTransaction);
+
+            // Update device last active
+            device.setLastActive(nombaTransaction.getDateCreated());
+            deviceRepository.save(device);
+
+            // Push payment to Nomba terminal (async on the terminal side; webhook completes
+            // it)
+            nombaService.pushPaymentToTerminal(terminalId, request.getTransactionReference(), amountInCurrency);
+
+            log.info("Nomba terminal payment pushed for ref: {}", request.getTransactionReference());
+
+            TransactionResponse nombaResponse = TransactionResponse.fromEntity(nombaTransaction);
+            nombaResponse.setAuthorizationUrl("#");
+            nombaResponse.setAccessCode("#");
+            nombaResponse.setPaystackReference(request.getTransactionReference());
+            nombaResponse.setEvent(paymentType.name());
+
+            webSocketService.sendTransactionNotification(nombaResponse);
+
+            PaymentRequest nombaPaymentRequest = PaymentRequest.builder()
+                    .transactionReference(request.getTransactionReference())
+                    .productName(request.getProductName())
+                    .productDescription(request.getProductDescription())
+                    .amount(amountInCurrency)
+                    .paymentType(paymentType)
+                    .status("PENDING")
+                    .recordStatus(RecordStatusConstant.ACTIVE)
+                    .build();
+            paymentRequestRepository.save(nombaPaymentRequest);
+            return nombaResponse;
+            // ---- End Nomba Block ----
+        } else if (paymentType == PaymentType.TRANSFER) {
             paymentMethod = PaymentMethod.PAYSTACK;
         } else {
             paymentMethod = PaymentMethod.PAYSTACK;

@@ -5,6 +5,7 @@ import com.eazybrew.vend.dto.request.PaymentRequestDto;
 import com.eazybrew.vend.dto.response.DeviceResponse;
 import com.eazybrew.vend.dto.response.PaymentReturnDataResponseDto;
 import com.eazybrew.vend.dto.response.PaymentStatusResponseDto;
+import com.eazybrew.vend.dto.response.PublicDeviceResponse;
 import com.eazybrew.vend.dto.response.TransactionResponse;
 import com.eazybrew.vend.exceptions.CustomException;
 import com.eazybrew.vend.service.DeviceService;
@@ -36,10 +37,8 @@ public class PaymentRequestController {
     @PostMapping
     @Operation(summary = "Process a payment request", description = "Process a new payment request")
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Payment request processed successfully",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = TransactionResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid request",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponse.class)))
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Payment request processed successfully", content = @Content(mediaType = "application/json", schema = @Schema(implementation = TransactionResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid request", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponse.class)))
     })
     public ResponseEntity<ApiResponse<TransactionResponse>> processPaymentRequest(
             @RequestHeader("X-API-KEY") String encryptedApiKey,
@@ -60,7 +59,6 @@ public class PaymentRequestController {
 
             return new ResponseEntity<>(apiResponse, apiResponse.getStatus());
 
-
         } catch (RuntimeException e) {
             if (e.getMessage().contains("Decryption failed")) {
                 log.error("Failed to decrypt API key: {}", encryptedApiKey);
@@ -68,58 +66,35 @@ public class PaymentRequestController {
             }
             throw e;
         }
-
     }
 
     @GetMapping("/status/{transactionReference}")
     @Operation(summary = "Get payment status", description = "Get the status of a payment request")
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Payment status retrieved successfully",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = TransactionResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Payment request not found",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponse.class)))
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Payment status retrieved successfully", content = @Content(mediaType = "application/json", schema = @Schema(implementation = TransactionResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Payment request not found", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponse.class)))
     })
     public ResponseEntity<ApiResponse<TransactionResponse>> getPaymentStatus(
             @PathVariable String transactionReference) {
-        
+
         log.info("Getting payment status for transaction reference: {}", transactionReference);
         TransactionResponse response = paymentRequestService.getPaymentStatus(transactionReference);
-        
+
         ApiResponse<TransactionResponse> apiResponse = new ApiResponse<>(HttpStatus.OK);
         apiResponse.setMessage("Payment status retrieved successfully");
         apiResponse.setData(response);
-        
+
         return new ResponseEntity<>(apiResponse, apiResponse.getStatus());
     }
 
-//    @GetMapping("/returndata/{transactionReference}")
-//    @Operation(summary = "Get payment return data", description = "Get the return data for a payment request")
-//    @ApiResponses(value = {
-//            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Payment return data retrieved successfully",
-//                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = PaymentReturnDataResponseDto.class))),
-//            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Payment request not found",
-//                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponse.class))),
-//            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Payment not successful",
-//                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponse.class)))
-//    })
-//    public ResponseEntity<ApiResponse<PaymentReturnDataResponseDto>> getPaymentReturnData(
-//            @PathVariable String transactionReference) {
-//
-//        log.info("Getting payment return data for transaction reference: {}", transactionReference);
-//        PaymentReturnDataResponseDto response = paymentRequestService.getPaymentReturnData(transactionReference);
-//
-//        ApiResponse<PaymentReturnDataResponseDto> apiResponse = new ApiResponse<>(HttpStatus.OK);
-//        apiResponse.setMessage("Payment return data retrieved successfully");
-//        apiResponse.setData(response);
-//
-//        return new ResponseEntity<>(apiResponse, apiResponse.getStatus());
-//    }
-
+    /**
+     * Returns public device info — nombaTerminalId is intentionally excluded.
+     */
     @GetMapping("/vend-mach/{serial}")
     @Operation(summary = "Get Vending machine by serial number", description = "Get a device by its serial number.")
-    public ResponseEntity< ApiResponse<DeviceResponse>> getVendingMachineBySerial(@PathVariable String serial) {
-        DeviceResponse response = deviceService.getDeviceByVendingMachineId(serial);
-        ApiResponse<DeviceResponse> responseApi = new ApiResponse<>(HttpStatus.OK);
+    public ResponseEntity<ApiResponse<PublicDeviceResponse>> getVendingMachineBySerial(@PathVariable String serial) {
+        PublicDeviceResponse response = deviceService.getPublicDeviceByVendingMachineId(serial);
+        ApiResponse<PublicDeviceResponse> responseApi = new ApiResponse<>(HttpStatus.OK);
         responseApi.setMessage("Vending machine data retrieved successfully");
         responseApi.setData(response);
         return new ResponseEntity<>(responseApi, responseApi.getStatus());

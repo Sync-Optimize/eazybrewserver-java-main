@@ -51,6 +51,7 @@ public class SecurityConfig {
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
@@ -63,8 +64,7 @@ public class SecurityConfig {
                 "Authorization",
                 "X-API-KEY",
                 "Access-Control-Allow-Origin",
-                "Access-Control-Allow-Credentials"
-        ));
+                "Access-Control-Allow-Credentials"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
 
@@ -83,37 +83,38 @@ public class SecurityConfig {
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> {
-                            //websocket
-                            auth.requestMatchers("/ws","/ws/**", "/topic/**").permitAll();
+                    // websocket
+                    auth.requestMatchers("/ws", "/ws/**", "/topic/**").permitAll();
 
-                            // Authentication endpoints
-                            auth.requestMatchers("/api/auth/**").permitAll();
+                    // Authentication endpoints
+                    auth.requestMatchers("/api/auth/**").permitAll();
 
-                            // Static resources - always accessible
-                            auth.requestMatchers("/favicon.ico", "/static/**", "/css/**", "/js/**").permitAll();
+                    // Static resources - always accessible
+                    auth.requestMatchers("/favicon.ico", "/static/**", "/css/**", "/js/**").permitAll();
 
-                            // OpenAPI/Swagger endpoints - comprehensive list
-                            auth.requestMatchers("/swagger-ui.html").permitAll();
-                            auth.requestMatchers("/swagger-ui/**").permitAll();
-                            auth.requestMatchers("/v3/api-docs").permitAll();
-                            auth.requestMatchers("/v3/api-docs/**").permitAll();
-                            auth.requestMatchers("/swagger-resources/**").permitAll();
-                            auth.requestMatchers("/webjars/**").permitAll();
+                    // OpenAPI/Swagger endpoints - comprehensive list
+                    auth.requestMatchers("/swagger-ui.html").permitAll();
+                    auth.requestMatchers("/swagger-ui/**").permitAll();
+                    auth.requestMatchers("/v3/api-docs").permitAll();
+                    auth.requestMatchers("/v3/api-docs/**").permitAll();
+                    auth.requestMatchers("/swagger-resources/**").permitAll();
+                    auth.requestMatchers("/webjars/**").permitAll();
 
-                            // Whitelist transaction endpoints that use encrypted API keys
-                            auth.requestMatchers("/api/transactions/initiate").permitAll();
-                            // whitelist endpoints for company detail
-                            auth.requestMatchers("/api/transactions/device/**").permitAll();
-                            //vending machine client
-                            auth.requestMatchers("/api/processrequests").permitAll();
-                            auth.requestMatchers("/api/processrequests/**").permitAll();
-                            //paystack
-                            auth.requestMatchers("/api/paystack/8768907").permitAll();
+                    // Whitelist transaction endpoints that use encrypted API keys
+                    auth.requestMatchers("/api/transactions/initiate").permitAll();
+                    // whitelist endpoints for company detail
+                    auth.requestMatchers("/api/transactions/device/**").permitAll();
+                    // vending machine client
+                    auth.requestMatchers("/api/processrequests").permitAll();
+                    auth.requestMatchers("/api/processrequests/**").permitAll();
+                    // paystack
+                    auth.requestMatchers("/api/paystack/8768907").permitAll();
+                    // nomba
+                    auth.requestMatchers("/api/nomba/webhook").permitAll();
 
-                            // Any other request must be authenticated
-                            auth.anyRequest().authenticated();
-                        }
-                );
+                    // Any other request must be authenticated
+                    auth.anyRequest().authenticated();
+                });
 
         http.authenticationProvider(authenticationProvider());
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

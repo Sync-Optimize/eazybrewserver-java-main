@@ -102,3 +102,10 @@ paystack:
   baseurl: ${PAYSTACK_BASE_URL:https://api.paystack.co}
   prefered:
     bank: ${PAYSTACK_PREFERED_BANK:test-bank}
+
+nomba:
+  base-url: ${NOMBA_BASE_URL:https://api.nomba.com}
+  account-id: ${NOMBA_ACCOUNT_ID}
+  client-id: ${NOMBA_CLIENT_ID}
+  client-secret: ${NOMBA_CLIENT_SECRET}
+  webhook-secret: ${NOMBA_WEBHOOK_SECRET}

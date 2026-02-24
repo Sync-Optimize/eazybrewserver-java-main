@@ -9,11 +9,16 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
+/**
+ * Public-facing device response — omits sensitive internal fields like
+ * nombaTerminalId.
+ * Used by vending-machine client endpoints under /api/processrequests.
+ */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class DeviceResponse {
+public class PublicDeviceResponse {
 
     private Long id;
     private String deviceId;
@@ -28,12 +33,11 @@ public class DeviceResponse {
     private String apiKey;
     private LocalDateTime lastActive;
     private String location;
-    private String nombaTerminalId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    public static DeviceResponse fromEntity(Device device) {
-        return DeviceResponse.builder()
+    public static PublicDeviceResponse fromEntity(Device device) {
+        return PublicDeviceResponse.builder()
                 .id(device.getId())
                 .deviceId(device.getDeviceId())
                 .deviceName(device.getDeviceName())
@@ -47,7 +51,6 @@ public class DeviceResponse {
                 .apiKey(device.getCompany().getApiKey())
                 .lastActive(device.getLastActive())
                 .location(device.getLocation())
-                .nombaTerminalId(device.getNombaTerminalId())
                 .createdAt(device.getDateCreated())
                 .updatedAt(device.getDateModified())
                 .build();

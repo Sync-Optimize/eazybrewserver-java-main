@@ -2,6 +2,7 @@ package com.eazybrew.vend.service;
 
 import com.eazybrew.vend.dto.request.DeviceRequest;
 import com.eazybrew.vend.dto.response.DeviceResponse;
+import com.eazybrew.vend.dto.response.PublicDeviceResponse;
 import com.eazybrew.vend.model.Device;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -42,6 +43,11 @@ public interface DeviceService {
      */
     DeviceResponse getDeviceByVendingMachineId(String vendingMachineId);
 
+    /**
+     * Get a public (client-safe) device view by vending machine ID — omits internal
+     * fields like nombaTerminalId.
+     */
+    PublicDeviceResponse getPublicDeviceByVendingMachineId(String vendingMachineId);
 
     /**
      * Get all devices for a company
@@ -55,7 +61,7 @@ public interface DeviceService {
      * Get all devices for a company with pagination
      *
      * @param companyId The company ID
-     * @param pageable Pagination information
+     * @param pageable  Pagination information
      * @return Page of device responses
      */
     Page<DeviceResponse> getDevicesByCompany(Long companyId, Pageable pageable);
@@ -72,7 +78,7 @@ public interface DeviceService {
      * Enable or disable a device
      *
      * @param deviceId The deviceID
-     * @param enabled The enabled status
+     * @param enabled  The enabled status
      * @return The updated device response
      */
     DeviceResponse updateDeviceStatus(String deviceId, boolean enabled);
@@ -81,7 +87,7 @@ public interface DeviceService {
      * Update a device's information
      *
      * @param deviceId The deviceID
-     * @param request The device update request
+     * @param request  The device update request
      * @return The updated device response
      */
     DeviceResponse updateDevice(String deviceId, DeviceRequest request);

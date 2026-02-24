@@ -22,7 +22,6 @@ public class DeviceRequest {
 
     private String vendingMachineId;
 
-
     private String vendingMachineName;
 
     @NotNull(message = "Device type is required")
@@ -33,4 +32,5 @@ public class DeviceRequest {
 
     private String location;
     private String locationTest;
+    private String nombaTerminalId;
 }
