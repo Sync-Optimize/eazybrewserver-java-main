@@ -28,7 +28,7 @@ public class NombaServiceImpl implements NombaService {
         private final RestTemplate restTemplate;
 
         @Override
-        public void pushPaymentToTerminal(String terminalId, String merchantTxRef, BigDecimal amountNaira) {
+        public String pushPaymentToTerminal(String terminalId, String merchantTxRef, BigDecimal amountNaira) {
                 String token = nombaTokenService.getAccessToken();
 
                 String url = baseUrl + "/v1/terminals/payment-request/" + terminalId;
@@ -67,6 +67,15 @@ public class NombaServiceImpl implements NombaService {
                                                 : "No response body";
                                 throw new CustomException("Nomba terminal push failed: " + msg, HttpStatus.BAD_GATEWAY);
                         }
+
+                        // Extract Nomba's paymentId from the response data — this is what Nomba echoes
+                        // back as merchantTxRef in webhook payloads, so we store it for lookup
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> data = (Map<String, Object>) responseBody.get("data");
+                        String nombaPaymentId = data != null ? String.valueOf(data.getOrDefault("paymentId", "")) : "";
+                        log.info("[Nomba] Nomba paymentId={}", nombaPaymentId);
+                        return nombaPaymentId;
+
                 } catch (CustomException e) {
                         throw e;
                 } catch (Exception e) {

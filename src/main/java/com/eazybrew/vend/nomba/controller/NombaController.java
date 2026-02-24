@@ -147,9 +147,17 @@ public class NombaController {
                 return;
             }
 
-            Optional<Transaction> transactionOptional = transactionRepository.findByReferenceNumber(merchantTxRef);
+            // Nomba sends its own paymentId as merchantTxRef in webhooks (not our
+            // referenceNumber).
+            // We stored Nomba's paymentId in paystackReference at push time, so look up by
+            // that first.
+            Optional<Transaction> transactionOptional = transactionRepository.findByPaystackReference(merchantTxRef);
             if (transactionOptional.isEmpty()) {
-                log.warn("[Nomba Webhook] No transaction found for ref: {}", merchantTxRef);
+                // Fallback: try our own referenceNumber in case it matches
+                transactionOptional = transactionRepository.findByReferenceNumber(merchantTxRef);
+            }
+            if (transactionOptional.isEmpty()) {
+                log.warn("[Nomba Webhook] No transaction found for merchantTxRef: {}", merchantTxRef);
                 return;
             }
 

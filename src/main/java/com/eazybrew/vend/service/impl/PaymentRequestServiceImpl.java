@@ -129,9 +129,19 @@ public class PaymentRequestServiceImpl implements PaymentRequestService {
             device.setLastActive(nombaTransaction.getDateCreated());
             deviceRepository.save(device);
 
-            // Push payment to Nomba terminal (async on the terminal side; webhook completes
-            // it)
-            nombaService.pushPaymentToTerminal(terminalId, request.getTransactionReference(), amountInCurrency);
+            // Push payment to Nomba terminal; returns Nomba's paymentId (used for webhook
+            // lookup)
+            String nombaPaymentId = nombaService.pushPaymentToTerminal(
+                    terminalId, request.getTransactionReference(), amountInCurrency);
+
+            // Store Nomba's paymentId in paystackReference — the webhook echoes this back
+            // as merchantTxRef
+            if (nombaPaymentId != null && !nombaPaymentId.isBlank()) {
+                nombaTransaction.setPaystackReference(nombaPaymentId);
+                nombaTransaction = transactionRepository.saveAndFlush(nombaTransaction);
+                log.info("[Nomba] Stored nombaPaymentId={} on transaction ref={}", nombaPaymentId,
+                        request.getTransactionReference());
+            }
 
             log.info("Nomba terminal payment pushed for ref: {}", request.getTransactionReference());
 
