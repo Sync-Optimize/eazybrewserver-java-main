@@ -139,17 +139,13 @@ public class AuthServiceImpl implements AuthService {
                     .map(GrantedAuthority::getAuthority)
                     .collect(Collectors.toList());
 
-            // if initial‑password reset is still pending, return reset‑required response
-            if (userDetails.isEnforcePasswordReset()) {
-                throw new CustomException("Please change your Initial Password", HttpStatus.NOT_ACCEPTABLE);
-            }
-
             return JwtResponse.builder()
                     .token(jwt)
                     .id(userDetails.getId())
                     .username(userDetails.getUsername())
                     .email(userDetails.getEmail())
                     .roles(roles)
+                    .resetRequired(userDetails.isEnforcePasswordReset())
                     .build();
         } catch (org.springframework.security.authentication.BadCredentialsException e) {
             throw new CustomException("Invalid username or password", HttpStatus.UNAUTHORIZED);
