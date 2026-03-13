@@ -34,16 +34,16 @@ public class EmailServiceImpl implements EmailService {
 
     private final ResourceLoader resourceLoader;
 
-    @Value("${zeptomail.api.url}")
-    private String zeptoApiUrl;
+    @Value("${brevo.api.url}")
+    private String brevoApiUrl;
 
-    @Value("${zeptomail.api.key}")
-    private String zeptoApiKey;
+    @Value("${brevo.api.key}")
+    private String brevoApiKey;
 
-    @Value("${zeptomail.from.email}")
+    @Value("${brevo.from.email}")
     private String fromEmail;
 
-    @Value("${zeptomail.from.name}")
+    @Value("${brevo.from.name}")
     private String fromName;
 
     @Override
@@ -109,7 +109,7 @@ public class EmailServiceImpl implements EmailService {
 
     @Override
     @Async("emailTaskExecutor")
-    public CompletableFuture<Boolean> sendPasswordResetEmailAsync(User user,String code, String subject) {
+    public CompletableFuture<Boolean> sendPasswordResetEmailAsync(User user, String code, String subject) {
         log.info("Sending password reset notification email asynchronously to: {}", user.getEmail());
         try {
             String htmlTemplate = loadEmailTemplate("templates/password-reset.html");
@@ -128,7 +128,32 @@ public class EmailServiceImpl implements EmailService {
 
             return CompletableFuture.completedFuture(result);
         } catch (Exception e) {
-            log.error("Failed to send password ret notification email", e);
+            log.error("Failed to send password reset notification email", e);
+            return CompletableFuture.completedFuture(false);
+        }
+    }
+
+    @Override
+    @Async("emailTaskExecutor")
+    public CompletableFuture<Boolean> sendWelcomeEmailAsync(User user) {
+        log.info("Sending welcome email asynchronously to: {}", user.getEmail());
+        try {
+            String htmlTemplate = loadEmailTemplate("templates/welcome.html");
+
+            // Replace placeholders in the template
+            String htmlContent = htmlTemplate
+                    .replace("{{userEmail}}", user.getEmail());
+
+            boolean result = sendEmail(
+                    user.getEmail(),
+                    user.getEmail(),
+                    "Welcome to EazyBrew!",
+                    htmlContent
+            );
+
+            return CompletableFuture.completedFuture(result);
+        } catch (Exception e) {
+            log.error("Failed to send welcome email", e);
             return CompletableFuture.completedFuture(false);
         }
     }
@@ -139,45 +164,59 @@ public class EmailServiceImpl implements EmailService {
         HttpURLConnection conn = null;
         StringBuffer response = new StringBuffer();
 
+        log.info("========== BREVO EMAIL DEBUG START ==========");
+        log.info("Brevo API URL: {}", brevoApiUrl);
+        log.info("Brevo API Key (first 20 chars): {}", brevoApiKey != null && brevoApiKey.length() > 20 ? brevoApiKey.substring(0, 20) + "..." : brevoApiKey);
+        log.info("From Email: {}", fromEmail);
+        log.info("From Name: {}", fromName);
+        log.info("To Email: {}", toEmail);
+        log.info("To Name: {}", toName);
+        log.info("Subject: {}", subject);
+
         try {
-            URL url = new URL(zeptoApiUrl);
+            URL url = new URL(brevoApiUrl);
             conn = (HttpURLConnection) url.openConnection();
             conn.setDoOutput(true);
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Content-Type", "application/json");
             conn.setRequestProperty("Accept", "application/json");
-            conn.setRequestProperty("Authorization", "Zoho-enczapikey " + zeptoApiKey);
+            conn.setRequestProperty("api-key", brevoApiKey);
 
-            // Create JSON payload
+            // Build the Brevo-compatible JSON payload
             JSONObject payload = new JSONObject();
 
-            // From details
-            JSONObject from = new JSONObject();
-            from.put("address", fromEmail);
-            from.put("name", fromName);
-            payload.put("from", from);
+            // Sender details
+            JSONObject sender = new JSONObject();
+            sender.put("email", fromEmail);
+            sender.put("name", fromName);
+            payload.put("sender", sender);
 
-            // To details
+            // Recipient details
             JSONArray toArray = new JSONArray();
             JSONObject recipient = new JSONObject();
-            JSONObject emailAddress = new JSONObject();
-            emailAddress.put("address", toEmail);
-            emailAddress.put("name", toName);
-            recipient.put("email_address", emailAddress);
+            recipient.put("email", toEmail);
+            recipient.put("name", toName);
             toArray.put(recipient);
             payload.put("to", toArray);
 
             // Email content
             payload.put("subject", subject);
-            payload.put("htmlbody", htmlContent);
+            payload.put("htmlContent", htmlContent);
+
+            // Log the payload (without htmlContent to keep logs readable)
+            JSONObject logPayload = new JSONObject(payload.toString());
+            logPayload.put("htmlContent", "[HTML_CONTENT_OMITTED - " + htmlContent.length() + " chars]");
+            log.info("Request Payload: {}", logPayload.toString(2));
 
             // Send the request
             OutputStream os = conn.getOutputStream();
             os.write(payload.toString().getBytes(StandardCharsets.UTF_8));
             os.flush();
+            log.info("Request sent to Brevo API");
 
             // Get response
             int responseCode = conn.getResponseCode();
+            log.info("Response Code: {}", responseCode);
 
             if (responseCode >= 200 && responseCode < 300) {
                 br = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8));
@@ -185,7 +224,8 @@ public class EmailServiceImpl implements EmailService {
                 while ((line = br.readLine()) != null) {
                     response.append(line);
                 }
-                log.info("Email sent successfully to {}: {}", toEmail, response.toString());
+                log.info("SUCCESS - Email sent to {}: {}", toEmail, response.toString());
+                log.info("========== BREVO EMAIL DEBUG END ==========");
                 return true;
             } else {
                 br = new BufferedReader(new InputStreamReader(conn.getErrorStream(), StandardCharsets.UTF_8));
@@ -193,12 +233,15 @@ public class EmailServiceImpl implements EmailService {
                 while ((line = br.readLine()) != null) {
                     response.append(line);
                 }
-                log.error("Failed to send email to {}: {} - {}", toEmail, responseCode, response.toString());
+                log.error("FAILED - Email to {}: HTTP {} - {}", toEmail, responseCode, response.toString());
+                log.info("========== BREVO EMAIL DEBUG END ==========");
                 return false;
             }
         } catch (Exception e) {
-            log.error("Exception while sending email to " + toEmail, e);
+            log.error("EXCEPTION while sending email to {}: {}", toEmail, e.getMessage(), e);
+            log.info("========== BREVO EMAIL DEBUG END ==========");
             return false;
+
         } finally {
             try {
                 if (br != null) {

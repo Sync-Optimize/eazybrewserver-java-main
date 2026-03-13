@@ -47,4 +47,12 @@ public interface EmailService {
     CompletableFuture<Boolean> sendPasswordChangedEmailAsync(User user);
 
     CompletableFuture<Boolean> sendPasswordResetEmailAsync(User user,String code, String subject);
+
+    /**
+     * Send a welcome email to a newly signed up user asynchronously
+     *
+     * @param user The user who just signed up
+     * @return CompletableFuture<Boolean> that will complete with true if email was sent successfully, false otherwise
+     */
+    CompletableFuture<Boolean> sendWelcomeEmailAsync(User user);
 }

@@ -48,6 +48,7 @@ public class AuthServiceImpl implements AuthService {
     private static final long RESET_TOKEN_EXPIRY_HOURS = 24;
 
     @Override
+    @Transactional
     public String signup(SignupRequest signupRequest) {
         if (userRepository.existsByEmail(signupRequest.getEmail())) {
             throw new CustomException("Email is already in use!", HttpStatus.BAD_REQUEST);
@@ -94,7 +95,31 @@ public class AuthServiceImpl implements AuthService {
         }
 
         user.setRoles(roles);
-        userRepository.save(user);
+        User savedUser = userRepository.save(user);
+
+        // Send welcome email after the transaction commits successfully
+        final User finalUser = savedUser;
+        if (TransactionSynchronizationManager.isActualTransactionActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    log.info("User created successfully: {}, sending welcome email", finalUser.getEmail());
+                    emailService.sendWelcomeEmailAsync(finalUser)
+                            .thenAccept(emailSent -> {
+                                if (emailSent) {
+                                    log.info("Welcome email sent successfully to: {}", finalUser.getEmail());
+                                } else {
+                                    log.warn("Failed to send welcome email to: {}", finalUser.getEmail());
+                                }
+                            })
+                            .exceptionally(e -> {
+                                log.error("Error sending welcome email to: {}", finalUser.getEmail(), e);
+                                return null;
+                            });
+                }
+            });
+        }
+
         return "User Created Successfully";
     }
 
@@ -219,17 +244,33 @@ public class AuthServiceImpl implements AuthService {
             tokenRepository.save(prt);
             log.info("Password reset token saved with expiry {} for user {}", expiry, user.getEmail());
 
-            String resetLink = "${frontend.url}/reset-password?token=" + token;
             String subject = "Password Reset Request";
-            String content = "Click the following link to reset your password: " + resetLink;
-            log.info("Sending password reset email to: {}", user.getEmail());
-            emailService.sendPasswordResetEmailAsync(user,token,subject)
-                    .thenAccept(success -> log.info("Password Reset notification email sent to {}: {}", user.getEmail(), success))
-                    .exceptionally(e -> {
-                        log.error("Failed to send password reset notification to {}", user.getEmail(), e);
-                        return null;
-                    });
-            log.info("Password reset email sent to: {}", user.getEmail());
+
+            // Send the password reset email after the transaction commits
+            // so the token is guaranteed to be persisted
+            final String finalToken = token;
+            if (TransactionSynchronizationManager.isActualTransactionActive()) {
+                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        log.info("Transaction committed, sending password reset email to: {}", user.getEmail());
+                        emailService.sendPasswordResetEmailAsync(user, finalToken, subject)
+                                .thenAccept(success -> log.info("Password reset email sent to {}: {}", user.getEmail(), success))
+                                .exceptionally(e -> {
+                                    log.error("Failed to send password reset email to {}", user.getEmail(), e);
+                                    return null;
+                                });
+                    }
+                });
+            } else {
+                log.warn("No active transaction, sending password reset email immediately to: {}", user.getEmail());
+                emailService.sendPasswordResetEmailAsync(user, token, subject)
+                        .thenAccept(success -> log.info("Password reset email sent to {}: {}", user.getEmail(), success))
+                        .exceptionally(e -> {
+                            log.error("Failed to send password reset email to {}", user.getEmail(), e);
+                            return null;
+                        });
+            }
         } else {
             log.warn("No user found with email: {}. Ignoring forgot password request.", request.getEmail());
         }

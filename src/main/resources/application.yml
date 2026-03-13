@@ -57,14 +57,14 @@ springdoc:
   packages-to-scan: com.eazybrew.vend.controller
   show-actuator: false
 
-# ZeptoMail Email Service Configuration
-zeptomail:
+# Brevo Email Service Configuration
+brevo:
   api:
-    url: ${ZEPTOMAIL_API_URL:https://api.zeptomail.com/v1.1/email}
-    key: ${ZEPTOMAIL_API_KEY}
+    url: ${BREVO_API_URL:https://api.brevo.com/v3/smtp/email}
+    key: ${BREVO_API_KEY}
   from:
-    email: ${ZEPTOMAIL_FROM_EMAIL}
-    name: ${ZEPTOMAIL_FROM_NAME}
+    email: ${BREVO_FROM_EMAIL}
+    name: ${BREVO_FROM_NAME}
 
 # Swagger Server Configuration
 swagger:
